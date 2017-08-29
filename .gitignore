@@ -31,3 +31,8 @@ debug
 # certificates #
 ######################
 cert
+certs
+
+# webstorm #
+######################
+.idea
