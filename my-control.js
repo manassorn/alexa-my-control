@@ -65,7 +65,7 @@ function processTest(args) {
   //
   const operationTimeout = 10000;
 
-  const thingName = 'YouControl';
+  const thingName = 'MyControl';
 
   var currentTimeout = null;
 
@@ -124,33 +124,39 @@ function processTest(args) {
   function mobileAppConnect() {
     console.log('thingName=',thingName)
     thingShadows.register(thingName, {
-        ignoreDeltas: false,
+        ignoreDeltas: true,
         persistentSubscribe: true
       },
       function(err, failedTopics) {
         if (isUndefined(err) && isUndefined(failedTopics)) {
           console.log('Mobile thing registered.');
+
+          initial();
         }
       });
   }
 
-  function deviceConnect() {
-    thingShadows.register(thingName, {
-        ignoreDeltas: true
-      },
-      function(err, failedTopics) {
-        if (isUndefined(err) && isUndefined(failedTopics)) {
-          console.log('Device thing registered.');
-          genericOperation('update', generateRandomState());
-        }
-      });
+  function initial() {
+    exec('powershell.exe -ExecutionPolicy ByPass .\\GetVolume.ps1', function(error, stdout, stderr) {
+      console.log('volume=', typeof stdout);
+    });
+    // {
+    //   state: {
+    //     reported: {
+    //       music: {
+    //         volume:
+    //       },
+    //       computer: {
+    //
+    //       }
+    //     }
+    //     desired: rgbValues
+    //   }
+    // }
+    // genericOperation('update', generateRandomState());
   }
 
-  if (args.testMode === 1) {
-    mobileAppConnect();
-  } else {
-    deviceConnect();
-  }
+  mobileAppConnect();
 
   function handleStatus(thingName, stat, clientToken, stateObject) {
     var expectedClientToken = stack.pop();
@@ -159,19 +165,6 @@ function processTest(args) {
       console.log('got \'' + stat + '\' status on: ' + thingName);
     } else {
       console.log('(status) client token mismtach on: ' + thingName);
-    }
-
-    if (args.testMode === 2) {
-      console.log('updated state to thing shadow');
-      //
-      // If no other operation is pending, restart it after 10 seconds.
-      //
-      if (currentTimeout === null) {
-        currentTimeout = setTimeout(function() {
-          currentTimeout = null;
-          genericOperation('update', generateRandomState());
-        }, 10000);
-      }
     }
   }
 
@@ -216,11 +209,7 @@ function processTest(args) {
   }
 
   function handleDelta(thingName, stateObject) {
-    if (args.testMode === 2) {
-      console.log('unexpected delta in device mode: ' + thingName);
-    } else {
-      console.log('delta on: ' + thingName + JSON.stringify(stateObject));
-    }
+    console.log('unexpected delta in device mode: ' + thingName);
   }
 
   function handleTimeout(thingName, clientToken) {
@@ -230,10 +219,6 @@ function processTest(args) {
       console.log('timeout on: ' + thingName);
     } else {
       console.log('(timeout) client token mismtach on: ' + thingName);
-    }
-
-    if (args.testMode === 2) {
-      genericOperation('update', generateRandomState());
     }
   }
 
